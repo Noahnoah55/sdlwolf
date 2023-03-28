@@ -3,5 +3,6 @@
 
 extern const int MAP[10][10];
 
+rayHit raycast(coord start, coord through);
 rayHit raycast(coord start, float direction);
 int getSquare(int x, int y);

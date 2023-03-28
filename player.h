@@ -3,12 +3,12 @@
 
 struct player {
     coord pos;
-    float direction = 0;
+    float direction = 1;
     int health = 100;
 };
 
-const float PLAYER_SPEED = 5;
-const float PLAYER_TURNSPEED = 180;
+const float PLAYER_SPEED = 1;
+const float PLAYER_TURNSPEED = 90;
 const float PLAYER_WIDTH = .5;
 
 extern player Player;

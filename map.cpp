@@ -23,34 +23,33 @@ int getSquare(int x, int y) {
     }
     return 2;
 }
-
-rayHit raycast(coord start, float direction) {
+rayHit raycast(coord start, coord raydir) {
     rayHit result;
-    coord raydir = fromPolar(1, direction);
+
     int mapX = (int)start.x;
     int mapY = (int)start.y;
-    result.testPoints.push_back((coord){mapX, mapY});
+    result.testPoints.push_back((coord){(float)mapX, (float)mapY});
     float sideDistX;
     float sideDistY;
-    float deltaDistX = abs(1.0f / raydir.x);
-    float deltaDistY = abs(1.0f / raydir.y);
+    float deltaDistX = std::abs((dist({0,0}, raydir) / raydir.x));
+    float deltaDistY = std::abs(dist({0,0}, raydir) / raydir.y);
     int stepX;
     int stepY;
     if (raydir.x > 0) {
         stepX = 1;
-        sideDistX = (mapX + 1.0 - start.x) * deltaDistX;
+        sideDistX = ((float)mapX + 1.0 - start.x) * deltaDistX;
     }
     else {
         stepX = -1;
-        sideDistX = (start.x - mapX) * deltaDistX;
+        sideDistX = ((float)start.x - mapX) * deltaDistX;
     }
     if (raydir.y > 0) {
         stepY = 1;
-        sideDistY = (mapY + 1.0 - start.y) * deltaDistY;
+        sideDistY = ((float)mapY + 1.0 - start.y) * deltaDistY;
     }
     else {
         stepY = -1;
-        sideDistY = (start.y - mapY) * deltaDistY;
+        sideDistY = ((float)start.y - mapY) * deltaDistY;
     }
     int hit = 0;
     int side;
@@ -60,13 +59,13 @@ rayHit raycast(coord start, float direction) {
             sideDistX += deltaDistX;
             mapX += stepX;
             side = 0;
-            result.testPoints.push_back((coord){mapX, mapY});
+            result.testPoints.push_back((coord){(float)mapX, (float)mapY});
         }
         else {
             sideDistY += deltaDistY;
             mapY += stepY;
             side = 1;
-            result.testPoints.push_back((coord){mapX, mapY});
+            result.testPoints.push_back((coord){(float)mapX, (float)mapY});
         }
         hit = getSquare(mapX, mapY);
         timer++;
@@ -94,4 +93,9 @@ rayHit raycast(coord start, float direction) {
     else result.perpDist = (sideDistY - deltaDistY);
     result.hitType = hit;
     return result;
+
+}
+
+rayHit raycast(coord start, float direction) {
+    return raycast(start, fromPolar(1.0f, direction));
 }

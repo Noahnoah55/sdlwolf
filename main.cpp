@@ -60,11 +60,9 @@ int main () {
                             if (e.key.state == SDL_PRESSED) DRAW_SCALE *= .5;
                             break;
                         case (SDL_SCANCODE_SPACE):
-                            /*
                             if (e.key.state == SDL_PRESSED) {
-                                testRay = raycast(Player.pos, Player.direction);
+                                Player.direction = 1;
                             }
-                            */
                             break;
                         default:
                             break;
@@ -86,6 +84,5 @@ int main () {
     }
 
     closeWindow();
-    SDL_Quit();
     return EXIT_SUCCESS;
 }
