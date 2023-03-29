@@ -1,18 +1,27 @@
 #include<SDL2/SDL.h>
-#include<SDL2/SDL_ttf.h>
 #include<iostream>
 #include<cstdlib>
 
 #include"types.h"
 #include"render.h"
 #include"player.h"
+#include"map.h"
 
 inputState InputState;
 
 
 int main () {
     // Init SDL
-    if (initialize()) {
+    if (initialize() != 0) {
+        return EXIT_FAILURE;
+    }
+    // Load textures, sounds, etc
+    if (loadMedia() != 0) {
+        return EXIT_FAILURE;
+    }
+    map CURR_MAP;
+    if (CURR_MAP.loadMap("maps/sample.map")) {
+        std::cout << "Failed to load test map" << std::endl;
         return EXIT_FAILURE;
     }
 
@@ -77,9 +86,8 @@ int main () {
         movePlayer(dt, InputState);
 
         // Render
-        drawFrame();
+        drawFrame(&CURR_MAP);
 
-        // Push Frame
         SDL_Delay(10);
     }
 

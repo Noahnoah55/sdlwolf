@@ -7,12 +7,21 @@ struct coord {
     struct coord& operator+(const coord& rhs) {x += rhs.x; y += rhs.y; return *this;}
 };
 
+enum cardinal {
+    NORTH,
+    SOUTH,
+    EAST,
+    WEST
+};
+
 struct rayHit {
     float euclidDist;
     float perpDist;
     coord collisionPoint;
+    float wallX;
     std::vector<coord> testPoints;
     int hitType;
+    cardinal normal;
 };
 
 struct inputState {

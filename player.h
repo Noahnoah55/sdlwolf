@@ -7,7 +7,7 @@ struct player {
     int health = 100;
 };
 
-const float PLAYER_SPEED = 1;
+const float PLAYER_SPEED = 2;
 const float PLAYER_TURNSPEED = 90;
 const float PLAYER_WIDTH = .5;
 

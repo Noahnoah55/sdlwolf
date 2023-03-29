@@ -1,10 +1,12 @@
 #include"map.h"
 #include"types.h"
 #include<iostream>
+#include<fstream>
+#include<sstream>
 
-const int MAP[10][10] = {
+const int defaultMap[10][10] = {
     {1,1,1,1,1,1,1,1,1,1},
-    {1,0,0,0,0,0,0,0,0,1},
+    {1,0,0,0,0,0,0,0,1,1},
     {1,0,0,0,0,0,0,0,0,1},
     {1,0,0,1,0,0,0,0,0,1},
     {1,0,0,0,0,0,0,0,0,1},
@@ -15,24 +17,73 @@ const int MAP[10][10] = {
     {1,1,1,1,1,1,1,1,1,1}
 };
 
-int getSquare(int x, int y) {
-    if (0 <= x && x <= 9) {
-        if (0 <= y && y <= 9) {
-            return MAP[x][y];
+int map::getSquare(int x, int y) {
+    if (0 <= x && x <= 255) {
+        if (0 <= y && y <= 255) {
+            return this->walls[x][y];
         }
     }
     return 2;
 }
-rayHit raycast(coord start, coord raydir) {
+
+void map::clearMap() {
+    for (int x = 0; x < 256; x++) {
+        for (int y = 0; y < 256; y++) {
+            this->walls[x][y] = 2;
+        }
+    }
+}
+
+int map::loadMap(const char* path) {
+    this->clearMap();
+    std::string line;
+    int y = 0;
+    std::ifstream mapFile;
+    mapFile.open(path);
+    if (!mapFile.is_open()) {
+        perror("Error opening map file");
+        return EXIT_FAILURE;
+    }
+    while (std::getline(mapFile, line)) {
+        std::istringstream linestream(line);
+        int x = 0;
+        int tile;
+        while (linestream >> tile) {
+            if (x > 100) {
+                std::cout << "X out of range" << std::endl;
+                break;
+            }
+            this->walls[x][y] = tile;
+            x++;
+        }
+        if (y > 100) {
+            std::cout << "Y out of range" << std::endl;
+            break;
+        }
+        y++;
+    }
+    return EXIT_SUCCESS;
+}
+
+map::map() {
+    for (int x = 0; x < 10; x++) {
+        for (int y = 0; y < 10; y++) {
+            this->walls[x][y] = defaultMap[x][y];
+        }
+    }
+}
+
+rayHit raycast(map *m, coord start, coord raydir) {
     rayHit result;
+    float raydirlen = (dist({0,0}, raydir));
 
     int mapX = (int)start.x;
     int mapY = (int)start.y;
     result.testPoints.push_back((coord){(float)mapX, (float)mapY});
     float sideDistX;
     float sideDistY;
-    float deltaDistX = std::abs((dist({0,0}, raydir) / raydir.x));
-    float deltaDistY = std::abs(dist({0,0}, raydir) / raydir.y);
+    float deltaDistX = std::abs(raydirlen / raydir.x);
+    float deltaDistY = std::abs(raydirlen / raydir.y);
     int stepX;
     int stepY;
     if (raydir.x > 0) {
@@ -67,9 +118,9 @@ rayHit raycast(coord start, coord raydir) {
             side = 1;
             result.testPoints.push_back((coord){(float)mapX, (float)mapY});
         }
-        hit = getSquare(mapX, mapY);
+        hit = m->getSquare(mapX, mapY);
         timer++;
-        if (timer > 200) {
+        if (timer > 1000) {
             std::cout << "Failed to raycast";
             hit = -1;
         }
@@ -89,13 +140,32 @@ rayHit raycast(coord start, coord raydir) {
     }
     result.collisionPoint = target;
     result.euclidDist = dist(target, start);
-    if (side == 0) result.perpDist = (sideDistX - deltaDistX);
-    else result.perpDist = (sideDistY - deltaDistY);
+    if (side == 0) {
+        result.perpDist = ((target.x-start.x) / raydir.x);
+        if (stepX == 1) {
+            result.normal = cardinal::EAST;
+            result.wallX = result.collisionPoint.y - mapY;
+        }
+        else {
+            result.normal = cardinal::WEST;
+            result.wallX = 1.0f - (result.collisionPoint.y - mapY);
+        }
+    }
+    else {
+        result.perpDist = ((target.y-start.y) / raydir.y);
+        if (stepY == 1) {
+            result.normal = cardinal::SOUTH;
+            result.wallX = 1.0f - (result.collisionPoint.x - mapX);
+        }
+        else {
+            result.normal = cardinal::NORTH;
+            result.wallX = result.collisionPoint.x - mapX;
+        }
+    }
     result.hitType = hit;
     return result;
-
 }
 
-rayHit raycast(coord start, float direction) {
-    return raycast(start, fromPolar(1.0f, direction));
+rayHit raycast(map *m, coord start, float direction) {
+    return raycast(m, start, fromPolar(1.0f, direction));
 }

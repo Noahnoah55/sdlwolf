@@ -2,7 +2,7 @@ OBJS = main.cpp types.cpp render.cpp player.cpp map.cpp # All files needed to bu
 OBJ_NAME = builds/game # Final executable name
 CC = g++
 COMPILER_FLAGS = -Wall -Wextra -std=c++20
-LINKER_FLAGS = -lSDL2 -lSDL2_ttf
+LINKER_FLAGS = -lSDL2 -lSDL2_ttf -lSDL2_image
 
 
 all: build run

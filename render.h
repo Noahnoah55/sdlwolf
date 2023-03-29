@@ -1,10 +1,18 @@
 #pragma once
 #include<SDL2/SDL.h>
 #include"types.h"
+#include"map.h"
 
 int initialize();
-void drawFrame();
+int loadMedia();
+void drawFrame(map *m);
 void closeWindow();
+
+enum justify {
+    left,
+    right,
+    center
+};
 
 extern float DRAW_SCALE;
 
