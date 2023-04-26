@@ -17,16 +17,27 @@ const int defaultMap[10][10] = {
     {1,1,1,1,1,1,1,1,1,1}
 };
 
-int map::getSquare(int x, int y) {
+int Map::getSquare(int x, int y) {
     if (0 <= x && x <= 255) {
         if (0 <= y && y <= 255) {
             return this->walls[x][y];
         }
     }
-    return 2;
+    return -1;
 }
 
-void map::clearMap() {
+int Map::setSquare(int x, int y, int val)
+{
+    if (0 <= x && x <= 255) {
+        if (0 <= y && y <= 255) {
+            walls[x][y] = val;
+            return 0;
+        }
+    }
+    return -1;
+}
+
+void Map::clearMap() {
     for (int x = 0; x < 256; x++) {
         for (int y = 0; y < 256; y++) {
             this->walls[x][y] = 2;
@@ -34,7 +45,7 @@ void map::clearMap() {
     }
 }
 
-int map::loadMap(const char* path) {
+int Map::loadMap(const char* path) {
     this->clearMap();
     std::string line;
     int y = 0;
@@ -65,7 +76,13 @@ int map::loadMap(const char* path) {
     return EXIT_SUCCESS;
 }
 
-map::map() {
+int Map::addSprite(coord pos, int sprite)
+{
+    sprites.push_back({pos, sprite});
+    return 0;
+}
+
+Map::Map() {
     for (int x = 0; x < 10; x++) {
         for (int y = 0; y < 10; y++) {
             this->walls[x][y] = defaultMap[x][y];
@@ -73,7 +90,7 @@ map::map() {
     }
 }
 
-rayHit raycast(map *m, coord start, coord raydir) {
+rayHit Map::raycast(coord start, coord raydir) {
     rayHit result;
     float raydirlen = (dist({0,0}, raydir));
 
@@ -118,7 +135,7 @@ rayHit raycast(map *m, coord start, coord raydir) {
             side = 1;
             result.testPoints.push_back((coord){(float)mapX, (float)mapY});
         }
-        hit = m->getSquare(mapX, mapY);
+        hit = getSquare(mapX, mapY);
         timer++;
         if (timer > 1000) {
             std::cout << "Failed to raycast";
@@ -166,6 +183,6 @@ rayHit raycast(map *m, coord start, coord raydir) {
     return result;
 }
 
-rayHit raycast(map *m, coord start, float direction) {
-    return raycast(m, start, fromPolar(1.0f, direction));
+rayHit Map::raycast(coord start, float direction) {
+    return raycast(start, fromPolar(1.0f, direction));
 }

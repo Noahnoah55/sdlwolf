@@ -8,6 +8,9 @@
 #include<SDL2/SDL_ttf.h>
 #include<SDL2/SDL_image.h>
 #include<map>
+#include<algorithm>
+
+#include<imgui/imgui.h>
 
 std::map<int, SDL_Texture*> textures;
 
@@ -18,8 +21,7 @@ SDL_Renderer* renderer = NULL;
 TTF_Font* font = NULL;
 
 // Private drawing methods
-void drawMap(map *m);
-void draw3D(map *m);
+void draw3D(Map &m);
 void drawText();
 
 float DRAW_SCALE = 10;
@@ -41,6 +43,7 @@ int loadMedia() {
     textures[5] = IMG_LoadTexture(renderer, "textures/mossy.png");
     textures[6] = IMG_LoadTexture(renderer, "textures/wood.png");
     textures[7] = IMG_LoadTexture(renderer, "textures/colorstone.png");
+    textures[8] = IMG_LoadTexture(renderer, "textures/barrel.png");
     return returnCode;
 }
 
@@ -69,6 +72,17 @@ int initialize() {
         return EXIT_FAILURE;
     }
     SDL_SetWindowTitle(window, "Video Game");
+
+    // Set up IMGUI
+    ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO(); (void) io;
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
+
+    ImGui::StyleColorsDark();
+
+    ImGui::ImplSDL
+
     return EXIT_SUCCESS;
 }
 
@@ -109,86 +123,35 @@ void drawText(int x, int y, justify j, std::string text) {
     SDL_DestroyTexture(textTexture);
 }
 
-void drawFrame(map *m) {
-    // Draw Background
+void drawFrame(Map &m) {
     SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0xFF);
     SDL_RenderClear(renderer);
 
+    /*
+    ImGui::Begin("Map");
+
+    for (auto spr : m.sprites) {
+        ImGui::Text("%f, %f", spr.first.x, spr.first.y);
+    }
+
+
+    ImGui::End();
+    */
+
     draw3D(m);
-    drawMap(m);
     SDL_RenderPresent(renderer);
 }
-
-void drawMap(map *m) {
-    int mapX = (int)Player.pos.x;
-    int mapY = (int)Player.pos.y;
-    // Draw Map
-    SDL_Rect mapSquare = {0, 0, (int)DRAW_SCALE, (int)DRAW_SCALE};
-    SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, 0xFF);
-    for (int x = 0; x < 10; x++) {
-        for (int y = 0; y < 10; y++) {
-            if (m->getSquare(x+mapX-5,y+mapY-5)) {
-                mapSquare.x = x * DRAW_SCALE;
-                mapSquare.y = y * DRAW_SCALE;
-                SDL_RenderFillRect(renderer, &mapSquare);
-            }
-        }
-    }
-
-    // Draw Player Icon
-    coord pvisual = Player.pos;
-    pvisual.x -= mapX-5;
-    pvisual.y -= mapY-5;
-    pvisual.x *= DRAW_SCALE;
-    pvisual.y *= DRAW_SCALE;
-    SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0xFF, 0xFF);
-    SDL_Rect pRect = {(int)(pvisual.x - (PLAYER_WIDTH * DRAW_SCALE * .5)),
-        (int)(pvisual.y - (PLAYER_WIDTH * DRAW_SCALE * .5)),
-        (int)(DRAW_SCALE * PLAYER_WIDTH),
-        (int)(DRAW_SCALE * PLAYER_WIDTH)};
-    SDL_RenderFillRect(renderer, &pRect);
-    SDL_SetRenderDrawColor(renderer, 0xFF, 0x00, 0x00, 0xFF);
-    coord facing = fromPolar(DRAW_SCALE * PLAYER_WIDTH * 3, Player.direction);
-    facing.x += pvisual.x;
-    facing.y += pvisual.y;
-    SDL_RenderDrawLine(renderer,
-        pvisual.x,
-        pvisual.y,
-        facing.x,
-        facing.y);
-
-    // Draw raycasting debug info
-    #define DEBUG_RAYCAST
-    #ifdef DEBUG_RAYCAST
-    rayHit testRay = raycast(m, Player.pos, Player.direction);
-    coord looking = testRay.collisionPoint;
-    SDL_Rect rayRect = {(int)((looking.x-mapX+5) * DRAW_SCALE) - 5,
-        (int)((looking.y-mapY+5) * DRAW_SCALE) - 5,
-        10, 10};
-    SDL_RenderDrawRect(renderer, &rayRect);
-    for (coord c : testRay.testPoints) {
-        rayRect.x = (c.x-mapX+5) * DRAW_SCALE;
-        rayRect.y = (c.y-mapY+5) * DRAW_SCALE;
-        rayRect.w = DRAW_SCALE;
-        rayRect.h = DRAW_SCALE;
-        SDL_RenderDrawRect(renderer, &rayRect);
-    }
-    SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0xFF, 0xFF);
-    SDL_RenderDrawLine(renderer,
-        pvisual.x,
-        pvisual.y,
-        (testRay.collisionPoint.x-mapX+5) * DRAW_SCALE,
-        (testRay.collisionPoint.y-mapY+5) * DRAW_SCALE);
-    #endif
+bool cmpSpr(const std::pair<float, std::pair<coord, int>> a, const std::pair<float, std::pair<coord, int>> b) {
+    return a.first > b.first;
 }
 
-
-void draw3D(map *m) {
+void draw3D(Map &m) {
+    int zBuffer[SCREEN_WIDTH];
     for (int x = 0; x < SCREEN_WIDTH; x++) {
         float camX = 1.5f*((float)x/(float)SCREEN_WIDTH)-.75;
         coord raydir = fromPolar(1.5, Player.direction);
         raydir = raydir + fromPolar(camX, Player.direction+90);
-        rayHit r = raycast(m, Player.pos, raydir);
+        rayHit r = m.raycast(Player.pos, raydir);
 
         // Pick out the right texture
         SDL_Texture *wallTex = textures[r.hitType-1];
@@ -210,6 +173,8 @@ void draw3D(map *m) {
         wallDest.y = (float)(SCREEN_HEIGHT - wallDest.h) / 2.0f;
         wallDest.w = 1;
 
+        zBuffer[x] = r.perpDist;
+
         // Draw ceiling and floor
         SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0xFF);
         SDL_RenderDrawLine(renderer, x, 0, x, SCREEN_HEIGHT/2);
@@ -219,5 +184,27 @@ void draw3D(map *m) {
 
         // Draw wall texture
         SDL_RenderCopyF(renderer, wallTex, &wallSrc, &wallDest);
+    }
+    std::vector<std::pair<float, std::pair<coord, int>>> sprites;
+    for (int x = 0; x < m.sprites.size(); x++) {
+        auto s = m.sprites.at(x);
+        sprites.push_back({dist(Player.pos, s.first), s});
+    }
+    std::sort(sprites.begin(), sprites.end(), cmpSpr); // Make sure this is furthest -> nearest
+    coord dir = fromPolar(1.0f, Player.direction);
+    coord plane = fromPolar(.66f, Player.direction + 90);
+    float det = (plane.x * dir.y) - (dir.x * plane.y);
+    det = 1.0f / det;
+    float camMa[2][2] = {
+        {dir.y*det, -dir.x*det},
+        {-plane.y*det, plane.x*det}
+    };
+    for (auto spr : sprites) {
+        coord relPos = Player.pos - spr.second.first;
+        coord camPos; // X is screen space, Y is depth (compare Y with Z buffer)
+        camPos.x = relPos.x*camMa[0][0] + relPos.y*camMa[0][1];
+        camPos.y = relPos.x*camMa[1][0] + relPos.y*camMa[1][1];
+        int screenSpriteX = (SCREEN_WIDTH / 2) * (1 + camPos.x / camPos.y);
+        SDL_RenderDrawLine(renderer, screenSpriteX, 0, screenSpriteX, SCREEN_HEIGHT);
     }
 }

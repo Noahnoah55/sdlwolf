@@ -5,7 +5,7 @@
 
 int initialize();
 int loadMedia();
-void drawFrame(map *m);
+void drawFrame(Map &m);
 void closeWindow();
 
 enum justify {

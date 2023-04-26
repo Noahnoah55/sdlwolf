@@ -19,7 +19,7 @@ int main () {
     if (loadMedia() != 0) {
         return EXIT_FAILURE;
     }
-    map CURR_MAP;
+    Map CURR_MAP;
     if (CURR_MAP.loadMap("maps/sample.map")) {
         std::cout << "Failed to load test map" << std::endl;
         return EXIT_FAILURE;
@@ -70,7 +70,7 @@ int main () {
                             break;
                         case (SDL_SCANCODE_SPACE):
                             if (e.key.state == SDL_PRESSED) {
-                                Player.direction = 1;
+                                CURR_MAP.addSprite(Player.pos, 9);
                             }
                             break;
                         default:
@@ -86,7 +86,7 @@ int main () {
         movePlayer(dt, InputState);
 
         // Render
-        drawFrame(&CURR_MAP);
+        drawFrame(CURR_MAP);
 
         SDL_Delay(10);
     }
