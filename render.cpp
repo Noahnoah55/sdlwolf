@@ -10,7 +10,9 @@
 #include<map>
 #include<algorithm>
 
-#include<imgui/imgui.h>
+#include"includes/imgui/imgui.h"
+#include"includes/imgui/backends/imgui_impl_sdl2.h"
+#include"includes/imgui/backends/imgui_impl_sdlrenderer.h"
 
 std::map<int, SDL_Texture*> textures;
 
@@ -81,7 +83,8 @@ int initialize() {
 
     ImGui::StyleColorsDark();
 
-    ImGui::ImplSDL
+    ImGui_ImplSDL2_InitForSDLRenderer(window, renderer);
+    ImGui_ImplSDLRenderer_Init(renderer);
 
     return EXIT_SUCCESS;
 }
@@ -91,6 +94,9 @@ void closeWindow() {
     for (auto texPair : textures) {
         SDL_DestroyTexture(texPair.second);
     }
+    ImGui_ImplSDLRenderer_Shutdown();
+    ImGui_ImplSDL2_Shutdown();
+    ImGui::DestroyContext();
     SDL_DestroyWindow(window);
     SDL_Quit();
 }
@@ -124,10 +130,13 @@ void drawText(int x, int y, justify j, std::string text) {
 }
 
 void drawFrame(Map &m) {
+    ImGui_ImplSDLRenderer_NewFrame();
+    ImGui_ImplSDL2_NewFrame();
+    ImGui::NewFrame();
+
     SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0xFF);
     SDL_RenderClear(renderer);
 
-    /*
     ImGui::Begin("Map");
 
     for (auto spr : m.sprites) {
@@ -136,9 +145,11 @@ void drawFrame(Map &m) {
 
 
     ImGui::End();
-    */
 
     draw3D(m);
+
+    ImGui::Render();
+    ImGui_ImplSDLRenderer_RenderDrawData(ImGui::GetDrawData());
     SDL_RenderPresent(renderer);
 }
 bool cmpSpr(const std::pair<float, std::pair<coord, int>> a, const std::pair<float, std::pair<coord, int>> b) {
@@ -205,6 +216,7 @@ void draw3D(Map &m) {
         camPos.x = relPos.x*camMa[0][0] + relPos.y*camMa[0][1];
         camPos.y = relPos.x*camMa[1][0] + relPos.y*camMa[1][1];
         int screenSpriteX = (SCREEN_WIDTH / 2) * (1 + camPos.x / camPos.y);
+        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
         SDL_RenderDrawLine(renderer, screenSpriteX, 0, screenSpriteX, SCREEN_HEIGHT);
     }
 }

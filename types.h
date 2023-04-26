@@ -4,8 +4,18 @@
 struct coord {
     float x;
     float y;
-    struct coord& operator+(const coord& rhs) {x += rhs.x; y += rhs.y; return *this;}
-    struct coord& operator-(const coord& rhs) {x -= rhs.x; y -= rhs.y; return *this;}
+    struct coord operator+(const coord& rhs) {
+        coord temp;
+        temp.x = this->x + rhs.x;
+        temp.y = this->y + rhs.y;
+        return temp;
+    }
+    struct coord operator-(const coord& rhs) {
+        coord temp;
+        temp.x = this->x - rhs.x;
+        temp.y = this->y - rhs.y;
+        return temp;
+    }
 };
 
 enum cardinal {

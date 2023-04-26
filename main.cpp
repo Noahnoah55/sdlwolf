@@ -6,6 +6,7 @@
 #include"render.h"
 #include"player.h"
 #include"map.h"
+#include"includes/imgui/backends/imgui_impl_sdl2.h"
 
 inputState InputState;
 
@@ -37,6 +38,7 @@ int main () {
 
         // Accept Input
         while (SDL_PollEvent(&e)) {
+            ImGui_ImplSDL2_ProcessEvent(&e);
             switch (e.type) {
                 case (SDL_QUIT):
                     quit = true;
