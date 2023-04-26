@@ -157,10 +157,10 @@ bool cmpSpr(const std::pair<float, std::pair<coord, int>> a, const std::pair<flo
 }
 
 void draw3D(Map &m) {
-    int zBuffer[SCREEN_WIDTH];
+    float zBuffer[SCREEN_WIDTH];
     for (int x = 0; x < SCREEN_WIDTH; x++) {
         float camX = 1.5f*((float)x/(float)SCREEN_WIDTH)-.75;
-        coord raydir = fromPolar(1.5, Player.direction);
+        coord raydir = fromPolar(1, Player.direction);
         raydir = raydir + fromPolar(camX, Player.direction+90);
         rayHit r = m.raycast(Player.pos, raydir);
 
@@ -203,7 +203,7 @@ void draw3D(Map &m) {
     }
     std::sort(sprites.begin(), sprites.end(), cmpSpr); // Make sure this is furthest -> nearest
     coord dir = fromPolar(1.0f, Player.direction);
-    coord plane = fromPolar(.66f, Player.direction + 90);
+    coord plane = fromPolar(.75f, Player.direction + 90);
     float det = (plane.x * dir.y) - (dir.x * plane.y);
     det = 1.0f / det;
     float camMa[2][2] = {
@@ -215,30 +215,32 @@ void draw3D(Map &m) {
         coord camPos; // X is screen space, Y is depth (compare Y with Z buffer)
         camPos.x = relPos.x*camMa[0][0] + relPos.y*camMa[0][1];
         camPos.y = relPos.x*camMa[1][0] + relPos.y*camMa[1][1];
-        int screenSpriteX = (SCREEN_WIDTH / 2) * (1 + camPos.x / camPos.y);
-        int screenSpriteW = abs(SCREEN_HEIGHT / camPos.y);
-        int drawStartX = screenSpriteX - (screenSpriteW/2);
-        int drawEndX = screenSpriteX + (screenSpriteW/2);
-        int spw, sph;
-        SDL_Texture *tex = textures[spr.second.second];
-        SDL_QueryTexture(tex, NULL, NULL, &spw, &sph);
-        SDL_FRect destStrip;
-        destStrip.h = abs(SCREEN_HEIGHT / camPos.y);
-        destStrip.y = -destStrip.h/2 + SCREEN_HEIGHT/2;
-        destStrip.w = 1;
-        SDL_Rect sourceStrip;
-        sourceStrip.h = sph;
-        sourceStrip.y = 0;
-        sourceStrip.w = 1;
-        sourceStrip.x = 0;
-        if (camPos.y < .1) {
-            for (int i = drawStartX; i < drawEndX; i++) {
+        if (camPos.y < -.1) {
+            int screenSpriteX = (SCREEN_WIDTH / 2) * (1 + camPos.x / camPos.y);
+            int screenSpriteW = abs(SCREEN_HEIGHT / camPos.y);
+            int drawStartX = screenSpriteX - (screenSpriteW/2);
+            int drawEndX = screenSpriteX + (screenSpriteW/2);
+            int spw, sph;
+            SDL_Texture *tex = textures[spr.second.second];
+            SDL_QueryTexture(tex, NULL, NULL, &spw, &sph);
+            SDL_FRect destStrip;
+            destStrip.h = abs(SCREEN_HEIGHT / camPos.y);
+            destStrip.y = -destStrip.h/2 + SCREEN_HEIGHT/2;
+            destStrip.w = 1;
+            SDL_Rect sourceStrip;
+            sourceStrip.h = sph;
+            sourceStrip.y = 0;
+            sourceStrip.w = 1;
+            sourceStrip.x = 0;
+            for (int i = std::min(drawStartX, 0); i < std::max(drawEndX, SCREEN_WIDTH); i++) {
                 destStrip.x = i;
                 sourceStrip.x = (i-drawStartX)*spw / screenSpriteW;
-                SDL_RenderCopyF(renderer, tex, &sourceStrip, &destStrip);
+                if (-camPos.y < zBuffer[i]) {
+                    SDL_RenderCopyF(renderer, tex, &sourceStrip, &destStrip);
+                }
             }
             ImGui::Begin("Spr");
-            ImGui::Text("%d, %d, %d", drawStartX, drawEndX, screenSpriteW);
+            ImGui::Text("%f, %f, %d", camPos.y, zBuffer[SCREEN_WIDTH/2], screenSpriteW);
             ImGui::End();
         }
     }
