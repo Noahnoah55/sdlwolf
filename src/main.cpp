@@ -72,7 +72,7 @@ int main () {
                             break;
                         case (SDL_SCANCODE_SPACE):
                             if (e.key.state == SDL_PRESSED) {
-                                CURR_MAP.addSprite(Player.pos, 8);
+                                CURR_MAP.addSprite(Player.pos, 0);
                             }
                             break;
                         default:

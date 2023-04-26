@@ -2,6 +2,7 @@
 #include"types.h"
 #include"player.h"
 #include"map.h"
+#include"texture.hpp"
 
 #include<iostream>
 #include<string>
@@ -14,7 +15,7 @@
 #include"includes/imgui/backends/imgui_impl_sdl2.h"
 #include"includes/imgui/backends/imgui_impl_sdlrenderer.h"
 
-std::map<int, SDL_Texture*> textures;
+TextureManager textureManager;
 
 SDL_Window* window = NULL;
 SDL_Surface* screenSurface = NULL;
@@ -37,15 +38,23 @@ int loadMedia() {
         returnCode = EXIT_FAILURE;
     }
 
-    textures[0] = IMG_LoadTexture(renderer, "textures/eagle.png");
-    textures[1] = IMG_LoadTexture(renderer, "textures/redbrick.png");
-    textures[2] = IMG_LoadTexture(renderer, "textures/purplestone.png");
-    textures[3] = IMG_LoadTexture(renderer, "textures/greystone.png");
-    textures[4] = IMG_LoadTexture(renderer, "textures/bluestone.png");
-    textures[5] = IMG_LoadTexture(renderer, "textures/mossy.png");
-    textures[6] = IMG_LoadTexture(renderer, "textures/wood.png");
-    textures[7] = IMG_LoadTexture(renderer, "textures/colorstone.png");
-    textures[8] = IMG_LoadTexture(renderer, "textures/barrel.png");
+    // TODO: Automate loading textures based on input file
+    Texture walls(renderer);
+    walls.addFrame("textures/eagle.png");
+    walls.addFrame("textures/redbrick.png");
+    walls.addFrame("textures/purplestone.png");
+    walls.addFrame("textures/greystone.png");
+    walls.addFrame("textures/bluestone.png");
+    walls.addFrame("textures/mossy.png");
+    walls.addFrame("textures/wood.png");
+    walls.addFrame("textures/colorstone.png");
+
+    Texture sprites(renderer);
+    sprites.addFrame("textures/barrel.png");
+
+    textureManager.setTexture("walls", walls);
+    textureManager.setTexture("sprites", sprites);
+
     return returnCode;
 }
 
@@ -91,9 +100,6 @@ int initialize() {
 
 // Closes the rendering window
 void closeWindow() {
-    for (auto texPair : textures) {
-        SDL_DestroyTexture(texPair.second);
-    }
     ImGui_ImplSDLRenderer_Shutdown();
     ImGui_ImplSDL2_Shutdown();
     ImGui::DestroyContext();
@@ -158,16 +164,16 @@ bool cmpSpr(const std::pair<float, std::pair<coord, int>> a, const std::pair<flo
 
 void draw3D(Map &m) {
     float zBuffer[SCREEN_WIDTH];
+    Texture wallTex = textureManager.getTexture("walls");
+    Texture spriteTex = textureManager.getTexture("sprites");
     for (int x = 0; x < SCREEN_WIDTH; x++) {
         float camX = 1.5f*((float)x/(float)SCREEN_WIDTH)-.75;
         coord raydir = fromPolar(1, Player.direction);
         raydir = raydir + fromPolar(camX, Player.direction+90);
         rayHit r = m.raycast(Player.pos, raydir);
 
-        // Pick out the right texture
-        SDL_Texture *wallTex = textures[r.hitType-1];
-        int texW, texH;
-        SDL_QueryTexture(wallTex, NULL, NULL, &texW, &texH);
+        int texW = wallTex.getFrameWidth();
+        int texH = wallTex.getFrameHeight();
 
         // wallSrc is the strip of the texture to be drawn here
         SDL_Rect wallSrc;
@@ -194,7 +200,7 @@ void draw3D(Map &m) {
         SDL_RenderDrawLine(renderer, x, SCREEN_HEIGHT/2, x, SCREEN_HEIGHT);
 
         // Draw wall texture
-        SDL_RenderCopyF(renderer, wallTex, &wallSrc, &wallDest);
+        wallTex.draw(&wallSrc, &wallDest, r.hitType-1);
     }
     std::vector<std::pair<float, std::pair<coord, int>>> sprites;
     for (unsigned int x = 0; x < m.sprites.size(); x++) {
@@ -220,9 +226,8 @@ void draw3D(Map &m) {
             int screenSpriteW = abs(SCREEN_HEIGHT / camPos.y);
             int drawStartX = screenSpriteX - (screenSpriteW/2);
             int drawEndX = screenSpriteX + (screenSpriteW/2);
-            int spw, sph;
-            SDL_Texture *tex = textures[spr.second.second];
-            SDL_QueryTexture(tex, NULL, NULL, &spw, &sph);
+            int spw = spriteTex.getFrameWidth(spr.second.second);
+            int sph = spriteTex.getFrameHeight(spr.second.second);
             SDL_FRect destStrip;
             destStrip.h = abs(SCREEN_HEIGHT / camPos.y);
             destStrip.y = -destStrip.h/2 + SCREEN_HEIGHT/2;
@@ -236,7 +241,7 @@ void draw3D(Map &m) {
                 destStrip.x = i;
                 sourceStrip.x = (i-drawStartX)*spw / screenSpriteW;
                 if (-camPos.y < zBuffer[i]) {
-                    SDL_RenderCopyF(renderer, tex, &sourceStrip, &destStrip);
+                    spriteTex.draw(&sourceStrip, &destStrip, spr.second.second);
                 }
             }
             ImGui::Begin("Spr");
