@@ -197,7 +197,7 @@ void draw3D(Map &m) {
         SDL_RenderCopyF(renderer, wallTex, &wallSrc, &wallDest);
     }
     std::vector<std::pair<float, std::pair<coord, int>>> sprites;
-    for (int x = 0; x < m.sprites.size(); x++) {
+    for (unsigned int x = 0; x < m.sprites.size(); x++) {
         auto s = m.sprites.at(x);
         sprites.push_back({dist(Player.pos, s.first), s});
     }
@@ -216,7 +216,30 @@ void draw3D(Map &m) {
         camPos.x = relPos.x*camMa[0][0] + relPos.y*camMa[0][1];
         camPos.y = relPos.x*camMa[1][0] + relPos.y*camMa[1][1];
         int screenSpriteX = (SCREEN_WIDTH / 2) * (1 + camPos.x / camPos.y);
-        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-        SDL_RenderDrawLine(renderer, screenSpriteX, 0, screenSpriteX, SCREEN_HEIGHT);
+        int screenSpriteW = abs(SCREEN_HEIGHT / camPos.y);
+        int drawStartX = screenSpriteX - (screenSpriteW/2);
+        int drawEndX = screenSpriteX + (screenSpriteW/2);
+        int spw, sph;
+        SDL_Texture *tex = textures[spr.second.second];
+        SDL_QueryTexture(tex, NULL, NULL, &spw, &sph);
+        SDL_FRect destStrip;
+        destStrip.h = abs(SCREEN_HEIGHT / camPos.y);
+        destStrip.y = -destStrip.h/2 + SCREEN_HEIGHT/2;
+        destStrip.w = 1;
+        SDL_Rect sourceStrip;
+        sourceStrip.h = sph;
+        sourceStrip.y = 0;
+        sourceStrip.w = 1;
+        sourceStrip.x = 0;
+        if (camPos.y < .1) {
+            for (int i = drawStartX; i < drawEndX; i++) {
+                destStrip.x = i;
+                sourceStrip.x = (i-drawStartX)*spw / screenSpriteW;
+                SDL_RenderCopyF(renderer, tex, &sourceStrip, &destStrip);
+            }
+            ImGui::Begin("Spr");
+            ImGui::Text("%d, %d, %d", drawStartX, drawEndX, screenSpriteW);
+            ImGui::End();
+        }
     }
 }
